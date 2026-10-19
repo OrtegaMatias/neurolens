@@ -6,6 +6,7 @@ import { ArrowRight, Flame, KeyRound, LoaderCircle, Sparkles, Swords, TriangleAl
 import { ApiError, entrar } from "@/lib/api";
 import { AvisoEducativo } from "./AvisoEducativo";
 import { Logo } from "./Logo";
+import { LogoUDD } from "./LogoUDD";
 import { PiePagina } from "./PiePagina";
 
 const FUNCIONES = [
@@ -76,6 +77,12 @@ export function Landing({ mensaje, onEntrar }: Props) {
       <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:py-16">
         {/* Presentación */}
         <section>
+          <motion.div custom={0} variants={aparecer} initial="oculto" animate="visible" className="mb-8">
+            <LogoUDD className="h-10 w-auto sm:h-12" />
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+              IA para la Gestión Industrial · Certamen 1
+            </p>
+          </motion.div>
           <motion.div custom={0} variants={aparecer} initial="oculto" animate="visible" className="flex items-center gap-4">
             <LogoAnimado />
             <div>

@@ -2,6 +2,7 @@ import { LogOut } from "lucide-react";
 import { AvisoEducativo } from "./AvisoEducativo";
 import { EstadoConexion } from "./EstadoConexion";
 import { Logo } from "./Logo";
+import { LogoUDD } from "./LogoUDD";
 import type { EstadoServidor } from "@/lib/useInfoServidor";
 
 export function Encabezado({ estado, onSalir }: { estado: EstadoServidor; onSalir: () => void }) {
@@ -21,7 +22,8 @@ export function Encabezado({ estado, onSalir }: { estado: EstadoServidor; onSali
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <LogoUDD className="hidden h-8 w-auto opacity-90 md:block" />
           <EstadoConexion estado={estado} />
           <button
             type="button"
