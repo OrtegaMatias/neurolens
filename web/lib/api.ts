@@ -1,7 +1,15 @@
 // Cliente tipado para el backend FastAPI (app.py).
-// La URL base se define en NEXT_PUBLIC_API_URL (ver .env.example).
+// Frontend y backend comparten origen: Next reenvía /api/* al backend (rewrite en next.config.ts),
+// así que por defecto las rutas son relativas y la cookie de sesión viaja sola.
+// NEXT_PUBLIC_API_URL solo se usa si se quiere apuntar a otro origen (ver .env.example).
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:7860").replace(/\/+$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+/** Evento global que se emite cuando el backend responde 401 (sesión vencida o clave rotada). */
+export const EVENTO_SESION_EXPIRADA = "neurolens:sesion-expirada";
+
+// Rutas de acceso: un 401 en ellas es una respuesta esperada, no una sesión vencida
+const RUTAS_DE_ACCESO = ["/api/acceso", "/api/sesion", "/api/salir"];
 
 export type ClaseId = "glioma" | "meningioma" | "notumor" | "pituitary";
 
@@ -66,7 +74,13 @@ async function solicitar(ruta: string, init: RequestInit = {}, timeoutMs = 60_00
 
   try {
     const res = await fetch(`${API_URL}${ruta}`, { ...init, signal: controller.signal });
-    if (!res.ok) throw await errorDesdeRespuesta(res);
+    if (!res.ok) {
+      // Manejo central del 401: la app vuelve a la pantalla de acceso sin que cada componente lo resuelva
+      if (res.status === 401 && !RUTAS_DE_ACCESO.includes(ruta)) {
+        window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA));
+      }
+      throw await errorDesdeRespuesta(res);
+    }
     return res;
   } catch (err) {
     if (err instanceof ApiError) throw err;
@@ -93,6 +107,33 @@ async function errorDesdeRespuesta(res: Response): Promise<ApiError> {
       res.status >= 500 ? `El servidor tuvo un problema (error ${res.status}).` : `Solicitud inválida (error ${res.status}).`;
   }
   return new ApiError(detalle, res.status);
+}
+
+// ---------- Acceso con clave ----------
+
+/** true si la cookie de sesión es válida; false si el backend responde 401. Otros errores se propagan. */
+export async function verificarSesion(signal?: AbortSignal): Promise<boolean> {
+  try {
+    await solicitar("/api/sesion", { signal }, 20_000);
+    return true;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return false;
+    throw err;
+  }
+}
+
+/** Envía la clave; si es correcta el backend deja una cookie HttpOnly con la sesión. */
+export async function entrar(clave: string): Promise<void> {
+  await solicitar(
+    "/api/acceso",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clave }) },
+    30_000,
+  );
+}
+
+/** Cierra la sesión (el backend borra la cookie). */
+export async function salir(): Promise<void> {
+  await solicitar("/api/salir", { method: "POST" }, 10_000);
 }
 
 export async function obtenerInfo(signal?: AbortSignal): Promise<Info> {

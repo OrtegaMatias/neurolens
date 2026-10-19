@@ -73,16 +73,22 @@ Detalle completo, gráficos, matriz de confusión, errores y Grad-CAM en [`noteb
 ## 4. Arquitectura
 
 ```
-web/  (Next.js 16 + Tailwind + Framer Motion)  ──HTTP──▶  app.py (FastAPI + YOLO + Grad-CAM)  ──▶  API de Anthropic
-      Vercel                                              Hugging Face Spaces (Docker)
+navegador ──HTTPS──▶ Cloudflare Tunnel (neurolens.cvdi.cl)
+                         └─▶ web  (Next.js 16 + Tailwind + Framer Motion)   docker compose "neurolens"
+                               └─ /api/* ─▶ api (FastAPI + YOLO + Grad-CAM) ──▶ API de Anthropic
 ```
+
+Frontend y backend corren en un servidor propio con `docker compose` (proyecto, red e imágenes aisladas; límites de RAM/CPU). El navegador solo ve el frontend; Next.js reenvía `/api/*` al backend por la red interna de Docker.
 
 | Endpoint | Qué hace |
 |---|---|
+| `POST /api/acceso` | valida la clave de acceso y entrega una cookie de sesión (12 h) |
 | `GET /api/info` | clases, umbral y métricas de prueba |
 | `POST /api/predict` | imagen → clase, confianza, probabilidades, aviso de baja confianza y Grad-CAM |
 | `POST /api/recomendar` | resultado → recomendación educativa de Claude (streaming) |
 | `POST /api/explicar-desafio` | ronda del juego → explicación de Claude de por qué falló cada uno |
+
+**Acceso con clave rotativa.** Para que nadie consuma la API del LLM sin permiso, la app abre con una *landing* que pide una clave. La clave vive en un archivo del servidor (`acceso/clave`, permisos 600), solo se obtiene por SSH y un cron la rota cada día (`scripts/rotar-clave.sh`). La sesión es una cookie HttpOnly firmada con HMAC usando la clave vigente: al rotar, todas las sesiones se cierran. Hay límite de 5 intentos fallidos cada 10 minutos por IP.
 
 **La app incluye:** carga de imagen (arrastrar, archivo o cámara del celular) e imágenes de ejemplo · clase, confianza y barras de probabilidad · Grad-CAM · desempeño del modelo en prueba claramente separado de la confianza por imagen · recomendación con IA · aviso educativo permanente y alerta de revisión humana bajo el umbral · mini juego Humano vs IA con marcador y explicaciones · pestaña de aprendizaje · historial local.
 
@@ -90,7 +96,7 @@ web/  (Next.js 16 + Tailwind + Framer Motion)  ──HTTP──▶  app.py (Fast
 
 - Al LLM se envía **solo texto** (clase, confianza, probabilidades, umbral); nunca la imagen.
 - El *system prompt* limita el tema, exige aclarar que **no es un diagnóstico**, prohíbe tratamientos/fármacos/pronósticos, pide **revisión humana si la confianza está bajo el umbral** o si la segunda clase está cerca, y recuerda que un "sin tumor" no descarta nada si hay síntomas.
-- La clave `ANTHROPIC_API_KEY` vive como **secreto** del Space de Hugging Face (o en un archivo `.env` local, ignorado por git) y **nunca** se sube al repositorio.
+- La clave `ANTHROPIC_API_KEY` vive solo en el archivo `.env` del servidor (ignorado por git) y **nunca** se sube al repositorio. Todos los endpoints del LLM exigen sesión.
 
 ## 6. Estructura del repositorio
 
@@ -98,24 +104,27 @@ web/  (Next.js 16 + Tailwind + Framer Motion)  ──HTTP──▶  app.py (Fast
 ├── app.py                     ← API FastAPI (modelo + Grad-CAM + Claude)
 ├── requirements.txt           ← dependencias de la app
 ├── requirements-notebook.txt  ← extras para el notebook
-├── Dockerfile                 ← imagen para Hugging Face Spaces
+├── Dockerfile                 ← imagen del backend
+├── docker-compose.yml         ← despliegue aislado (api + web)
+├── scripts/rotar-clave.sh     ← genera/rota la clave de acceso
 ├── notebooks/entrenamiento.ipynb  ← datos, comparación de modelos y métricas (ejecutado)
 ├── modelo/                    ← yolo_cls.pt (3 MB), clases.json, metricas.json
 ├── ejemplos/                  ← 4 imágenes de prueba (una por clase)
-└── web/                       ← frontend Next.js
+└── web/                       ← frontend Next.js (con su Dockerfile)
 ```
 
 ## 7. Cómo ejecutar en local
 
 ```bash
-# Backend (Python 3.12)
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-echo 'ANTHROPIC_API_KEY=tu_clave' > .env   # opcional: sin ella todo funciona menos la IA generativa
-uvicorn app:app --port 7860 --env-file .env
+# Con Docker (igual que en el servidor)
+echo 'ANTHROPIC_API_KEY=tu_clave' > .env
+scripts/rotar-clave.sh                     # imprime la clave de acceso
+docker compose up -d --build               # → http://localhost:8090
 
-# Frontend (Node 20+)
-cd web && cp .env.example .env.local && pnpm install && pnpm dev
+# Sin Docker (desarrollo)
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+uvicorn app:app --port 7860 --env-file .env
+cd web && pnpm install && API_INTERNA_URL=http://localhost:7860 pnpm dev
 ```
 
 Reentrenar: `pip install -r requirements.txt -r requirements-notebook.txt` y ejecutar `notebooks/entrenamiento.ipynb` (también funciona en Google Colab con GPU).

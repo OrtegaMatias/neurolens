@@ -1,0 +1,32 @@
+# NeuroLens · despliegue aislado (proyecto, red e imágenes propias; sin volúmenes)
+#   docker compose up -d --build      → levanta
+#   docker compose down --rmi all     → da de baja sin dejar rastros
+name: neurolens
+
+services:
+  api:
+    build: .
+    env_file: .env                 # ANTHROPIC_API_KEY (no se sube a GitHub)
+    volumes:
+      - ./acceso:/app/acceso:ro    # clave de acceso rotativa (solo lectura, generada por scripts/rotar-clave.sh)
+    restart: unless-stopped
+    networks: [neurolens]
+    mem_limit: 2g
+    cpus: 2
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_REPO_URL: https://github.com/OrtegaMatias/neurolens
+    depends_on: [api]
+    restart: unless-stopped
+    networks: [neurolens]
+    ports:
+      - "127.0.0.1:8090:3000"      # solo localhost: Cloudflare Tunnel publica neurolens.cvdi.cl
+    mem_limit: 512m
+    cpus: 1
+
+networks:
+  neurolens:
+    name: neurolens

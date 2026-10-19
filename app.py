@@ -6,17 +6,21 @@ El frontend (Next.js, carpeta web/) consume estos endpoints.
 """
 
 import base64
+import hashlib
+import hmac
 import io
 import json
 import os
+import re
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
 import numpy as np
 import torch
 from torchvision import transforms
 from ultralytics import YOLO
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from matplotlib import colormaps
 from PIL import Image, UnidentifiedImageError
@@ -76,28 +80,100 @@ def superponer(img: Image.Image, cam: np.ndarray) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 3. API
+# 3. Acceso con clave rotativa
+#    La clave vive en un archivo del servidor (solo legible por SSH) y la cambia
+#    un cron diario (scripts/rotar-clave.sh). Quien la ingresa recibe una cookie
+#    de sesión firmada con HMAC usando la clave vigente: al rotar, todas las
+#    sesiones anteriores dejan de ser válidas. Sin archivo de clave, nadie entra.
 # ---------------------------------------------------------------------------
-app = FastAPI(title="NeuroLens API")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+ARCHIVO_CLAVE = Path(os.getenv("ARCHIVO_CLAVE", Path(__file__).parent / "acceso" / "clave"))
+COOKIE = "neurolens_sesion"
+DURACION_SESION = 12 * 3600                  # segundos
+MAX_FALLOS, VENTANA_FALLOS = 5, 600          # 5 intentos fallidos cada 10 min por IP
+_fallos: dict[str, deque] = defaultdict(deque)
+
+
+def normalizar(clave: str) -> str:
+    """Ignora guiones, espacios y mayúsculas para que sea fácil de tipear."""
+    return re.sub(r"[^A-Z0-9]", "", clave.upper())
+
+
+def clave_actual() -> str | None:
+    try:
+        return normalizar(ARCHIVO_CLAVE.read_text()) or None
+    except OSError:
+        return None
+
+
+def firmar(clave: str, vence: str) -> str:
+    return hmac.new(clave.encode(), f"sesion|{vence}".encode(), hashlib.sha256).hexdigest()
+
+
+def exigir_sesion(request: Request) -> None:
+    """Dependencia de FastAPI: corta la petición con 401 si no hay sesión válida."""
+    clave = clave_actual()
+    vence, _, firma = request.cookies.get(COOKIE, "").partition(".")
+    if not (clave and vence.isdigit() and int(vence) > time.time()
+            and hmac.compare_digest(firma, firmar(clave, vence))):
+        raise HTTPException(401, "Sesión no válida o expirada.")
+
+
+def ip_cliente(request: Request) -> str:
+    # Detrás de Cloudflare la IP real llega en CF-Connecting-IP
+    reenviada = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    return request.headers.get("cf-connecting-ip") or reenviada or (request.client.host if request.client else "?")
+
+
+# ---------------------------------------------------------------------------
+# 4. API
+# ---------------------------------------------------------------------------
+app = FastAPI(title="NeuroLens API", docs_url=None, redoc_url=None, openapi_url=None)
+sesion = [Depends(exigir_sesion)]
 
 
 @app.get("/")
 def raiz():
-    return {"estado": "ok", "docs": "/docs"}
+    return {"estado": "ok"}
 
 
-@app.get("/api/info")
+class Acceso(BaseModel):
+    clave: str
+
+
+@app.post("/api/acceso")
+def acceso(datos: Acceso, request: Request, response: Response):
+    ahora, fallos = time.time(), _fallos[ip_cliente(request)]
+    while fallos and fallos[0] < ahora - VENTANA_FALLOS:
+        fallos.popleft()
+    if len(fallos) >= MAX_FALLOS:
+        raise HTTPException(429, "Demasiados intentos. Espera unos minutos.")
+    clave = clave_actual()
+    if not clave or not hmac.compare_digest(normalizar(datos.clave).encode(), clave.encode()):
+        fallos.append(ahora)
+        raise HTTPException(401, "Clave incorrecta.")
+    vence = str(int(ahora) + DURACION_SESION)
+    response.set_cookie(COOKIE, f"{vence}.{firmar(clave, vence)}", max_age=DURACION_SESION,
+                        httponly=True, secure=True, samesite="strict", path="/")
+    return {"ok": True}
+
+
+@app.get("/api/sesion", dependencies=sesion)
+def ver_sesion():
+    return {"ok": True}
+
+
+@app.post("/api/salir")
+def salir(response: Response):
+    response.delete_cookie(COOKIE, path="/")
+    return {"ok": True}
+
+
+@app.get("/api/info", dependencies=sesion)
 def info():
     return {"clases": INFO["clases"], "umbral": UMBRAL, "metricas": METRICAS}
 
 
-@app.post("/api/predict")
+@app.post("/api/predict", dependencies=sesion)
 async def predict(file: UploadFile = File(...)):
     try:
         img = Image.open(io.BytesIO(await file.read())).convert("RGB")
@@ -117,7 +193,7 @@ async def predict(file: UploadFile = File(...)):
 
 
 # ---------------------------------------------------------------------------
-# 4. Recomendación con IA generativa (Claude Haiku). Solo se envía TEXTO, nunca la imagen.
+# 5. Recomendación con IA generativa (Claude Haiku). Solo se envía TEXTO, nunca la imagen.
 # ---------------------------------------------------------------------------
 class Resultado(BaseModel):
     clase: str
@@ -178,13 +254,13 @@ def responder_con_claude(prompt: str, instrucciones: str) -> StreamingResponse:
     return StreamingResponse(flujo(), media_type="text/plain; charset=utf-8")
 
 
-@app.post("/api/recomendar")
+@app.post("/api/recomendar", dependencies=sesion)
 def recomendar(r: Resultado):
     return responder_con_claude(armar_prompt(r), INSTRUCCIONES)
 
 
 # ---------------------------------------------------------------------------
-# 5. Mini juego "Humano vs IA": explicar por qué falló cada uno
+# 6. Mini juego "Humano vs IA": explicar por qué falló cada uno
 # ---------------------------------------------------------------------------
 class Ronda(BaseModel):
     clase_real: str
@@ -225,7 +301,7 @@ def armar_prompt_juego(r: Ronda) -> str:
     )
 
 
-@app.post("/api/explicar-desafio")
+@app.post("/api/explicar-desafio", dependencies=sesion)
 def explicar_desafio(r: Ronda):
     if not {r.clase_real, r.eleccion, r.prediccion} <= set(NOMBRE):
         raise HTTPException(400, "Clase desconocida.")

@@ -1,0 +1,13 @@
+.venv
+datos
+runs
+web
+notebooks
+codigo_clases
+ejemplos
+.git
+.env
+__pycache__
+*.md
+acceso
+scripts

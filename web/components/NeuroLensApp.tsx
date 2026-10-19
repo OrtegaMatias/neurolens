@@ -14,8 +14,8 @@ import { PestanaModelo } from "./PestanaModelo";
 import { PESTANAS, Pestanas, usePestanaActiva, type PestanaId } from "./Pestanas";
 import { PiePagina } from "./PiePagina";
 
-// Componente raíz: carga /api/info una vez y reparte los datos a cada pestaña.
-export function NeuroLensApp() {
+// App principal (solo se muestra con sesión válida): carga /api/info una vez y reparte los datos a cada pestaña.
+export function NeuroLensApp({ onSalir }: { onSalir: () => void }) {
   const { info, estado, intento, maxIntentos, reintentar } = useInfoServidor();
   const clases = useMemo(() => combinarClases(info?.clases), [info]);
   const [activa, cambiarPestana] = usePestanaActiva();
@@ -32,7 +32,7 @@ export function NeuroLensApp() {
 
   return (
     <>
-      <Encabezado estado={estado} />
+      <Encabezado estado={estado} onSalir={onSalir} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-4 sm:px-6">
         <AvisoServidor estado={estado} intento={intento} maxIntentos={maxIntentos} onReintentar={reintentar} />
         <Pestanas activa={activa} onCambiar={cambiarPestana} contadorHistorial={historial.length} />

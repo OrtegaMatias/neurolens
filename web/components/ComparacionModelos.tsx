@@ -15,7 +15,7 @@ export function ComparacionModelos({ comparacion, modeloElegido }: Props) {
   return (
     <ul className="space-y-4">
       {ordenados.map((m, i) => {
-        // El nombre en la comparación puede traer detalles extra, p. ej. "EfficientNet-B0 (fine-tuning)"
+        // El nombre en la comparación puede traer detalles extra, p. ej. "YOLO-cls nano (ultralytics)"
         const elegido = m.modelo.toLowerCase().includes(modeloElegido.toLowerCase());
         return (
           <li key={m.modelo}>

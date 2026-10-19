@@ -37,7 +37,8 @@ export function useInfoServidor() {
         setEstado("listo");
       } catch (err) {
         if (controller.signal.aborted) return;
-        // Sin conexión o 502/503/504 = típicamente el contenedor aún está arrancando
+        // Sin conexión o 502/503/504 = típicamente el contenedor aún está arrancando.
+        // Un 401 (sesión vencida) NO se reintenta: lo resuelve ControlAcceso volviendo a la pantalla de acceso.
         const recuperable = err instanceof ApiError && (err.status === null || [502, 503, 504].includes(err.status));
         if (recuperable && intentos < MAX_INTENTOS) {
           setIntento(intentos);

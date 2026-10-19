@@ -1,6 +1,7 @@
-import { NeuroLensApp } from "@/components/NeuroLensApp";
+import { ControlAcceso } from "@/components/ControlAcceso";
 
-// Toda la app es un cliente estático que conversa con el backend (FastAPI) vía fetch
+// Cliente estático: ControlAcceso muestra la pantalla de acceso o la app según la sesión.
+// Las llamadas a /api/* son relativas; Next las reenvía al backend FastAPI (ver next.config.ts).
 export default function Home() {
-  return <NeuroLensApp />;
+  return <ControlAcceso />;
 }
