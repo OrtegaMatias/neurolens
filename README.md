@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| 🌐 App | `[URL de Vercel]` |
-| ⚙️ API (modelo) | `[URL del Space de Hugging Face]` |
+| 🌐 App | https://neurolens.cvdi.cl (requiere clave de acceso, ver sección 4) |
+| 💻 Repositorio | https://github.com/OrtegaMatias/neurolens |
 | 👥 Integrantes | Matías Ortega · Gaspar Lammel |
 
 NeuroLens recibe un corte de resonancia magnética cerebral, lo clasifica en **glioma, meningioma, tumor pituitario o sin tumor**, muestra la confianza, las probabilidades de las 4 clases y un mapa **Grad-CAM** de dónde miró el modelo, y pide a un LLM (**Claude Haiku 5.5**, de Anthropic) una recomendación educativa en lenguaje simple. Incluye un mini juego **Humano vs IA** que explica por qué falló cada uno.
