@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>NeuroLens · Certamen 1</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; background: #030712; color: #e2e8f0; }
+  .s { width: 1280px; height: 720px; padding: 56px 72px; position: relative; overflow: hidden; page-break-after: always;
+       background: radial-gradient(1200px 600px at 85% -10%, rgba(34,211,238,.14), transparent 60%), #030712; }
+  .s::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+       background-image: linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px);
+       background-size: 40px 40px; }
+  .pie { position: absolute; left: 72px; right: 72px; bottom: 28px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; z-index: 1; }
+  .pie img { height: 26px; }
+  h1 { font-size: 72px; letter-spacing: -1.5px; font-weight: 700; }
+  h2 { font-size: 40px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 8px; }
+  .kicker { color: #22d3ee; text-transform: uppercase; letter-spacing: 3px; font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+  .lead { font-size: 22px; color: #94a3b8; line-height: 1.5; }
+  .cian { color: #22d3ee; }
+  ul { list-style: none; } li { font-size: 21px; line-height: 1.45; margin: 12px 0; padding-left: 26px; position: relative; color: #cbd5e1; }
+  li::before { content: ""; position: absolute; left: 0; top: 12px; width: 10px; height: 10px; border-radius: 50%; background: #22d3ee; }
+  b { color: #f8fafc; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-top: 18px; position: relative; z-index: 1; }
+  .card { background: rgba(15,23,42,.75); border: 1px solid rgba(148,163,184,.18); border-radius: 18px; padding: 22px 26px; }
+  .big { font-size: 64px; font-weight: 700; color: #22d3ee; line-height: 1; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 26px; position: relative; z-index: 1; }
+  .kpis .card p { font-size: 15px; color: #94a3b8; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 19px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(148,163,184,.18); }
+  th { color: #94a3b8; font-weight: 600; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
+  tr.sel td { color: #22d3ee; font-weight: 700; }
+  img.fig { width: 100%; border-radius: 14px; }
+  .flujo { display: flex; gap: 14px; align-items: center; margin-top: 34px; font-size: 20px; position: relative; z-index: 1; }
+  .flujo .card { padding: 16px 20px; text-align: center; flex: 1; }
+  .flujo span.f { color: #22d3ee; font-size: 28px; }
+  .tag { display: inline-block; font-size: 13px; padding: 4px 10px; border-radius: 999px; background: rgba(34,211,238,.12); color: #67e8f9; margin-right: 6px; }
+  .z { position: relative; z-index: 1; }
+  .aviso { border-color: rgba(251,191,36,.4); background: rgba(120,53,15,.25); }
+</style>
+</head>
+<body>
+
+<!-- 1 · Portada -->
+<section class="s">
+  <div class="z" style="display:flex;flex-direction:column;justify-content:center;height:100%;">
+    <img src="img/udd-logo.png" style="height:56px;width:auto;align-self:flex-start;margin-bottom:40px">
+    <p class="kicker">IA para la Gestión Industrial · Certamen 1</p>
+    <h1>Neuro<span class="cian">Lens</span></h1>
+    <p class="lead" style="margin-top:14px;font-size:26px">Clasificador educativo de tumores cerebrales en resonancia magnética,<br>con modelo preentrenado, Grad-CAM e IA generativa.</p>
+    <p class="lead" style="margin-top:40px;font-size:20px">Matías Ortega · Gaspar Lammel</p>
+    <p style="margin-top:8px;color:#64748b">neurolens.cvdi.cl · github.com/OrtegaMatias/neurolens</p>
+  </div>
+</section>
+
+<!-- 2 · Problema -->
+<section class="s">
+  <p class="kicker">Problema y motivación</p>
+  <h2>De la resonancia a una decisión de triaje</h2>
+  <div class="grid2">
+    <ul>
+      <li>Los tumores cerebrales requieren <b>diagnóstico rápido</b>, y leer una RM depende de especialistas escasos.</li>
+      <li>Un clasificador puede apoyar el <b>triaje</b>: priorizar qué estudios revisar primero.</li>
+      <li>Para quién: <b>estudiantes y público</b> que quieren entender cómo "ve" una IA médica — y sus límites.</li>
+    </ul>
+    <div class="card aviso">
+      <p style="font-size:20px;line-height:1.5"><b>Prototipo educativo.</b> No es un diagnóstico médico. La app lo dice siempre y pide revisión humana cuando el modelo duda.</p>
+    </div>
+  </div>
+  <div class="flujo">
+    <div class="card">📷 Imagen</div><span class="f">→</span>
+    <div class="card">🧠 YOLO-cls<br><small style="color:#94a3b8">clase + confianza</small></div><span class="f">→</span>
+    <div class="card">📊 Probabilidades<br><small style="color:#94a3b8">+ Grad-CAM</small></div><span class="f">→</span>
+    <div class="card">💬 Claude Haiku</div><span class="f">→</span>
+    <div class="card">✅ Recomendación</div>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 3 · Datos -->
+<section class="s">
+  <p class="kicker">Datos</p>
+  <h2>Brain Tumor MRI Dataset (Kaggle · CC0)</h2>
+  <div class="grid2" style="grid-template-columns:1.1fr .9fr;align-items:start">
+    <table>
+      <tr><th>Clase</th><th>Total</th><th>Train</th><th>Val</th><th>Test</th></tr>
+      <tr><td>Glioma</td><td>1.786</td><td>1.250</td><td>268</td><td>268</td></tr>
+      <tr><td>Meningioma</td><td>1.784</td><td>1.249</td><td>267</td><td>268</td></tr>
+      <tr><td>Sin tumor</td><td>1.681</td><td>1.177</td><td>252</td><td>252</td></tr>
+      <tr><td>Pituitario</td><td>1.762</td><td>1.233</td><td>265</td><td>264</td></tr>
+      <tr class="sel"><td>Total</td><td>7.013</td><td>4.909</td><td>1.052</td><td>1.052</td></tr>
+    </table>
+    <ul style="margin-top:-8px">
+      <li>Fuentes: Figshare, SARTAJ y Br35H (M. Nickparvar, 2021).</li>
+      <li><b>187 duplicados exactos eliminados</b> (MD5) para evitar fuga entre train y test.</li>
+      <li>División <b>estratificada 70/15/15</b>, semilla fija. Desbalance leve → accuracy balanceada.</li>
+      <li><b>Limitaciones:</b> sin ID de paciente, "sin tumor" viene de otra fuente, solo 3 tipos de tumor.</li>
+    </ul>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 4 · Comparación -->
+<section class="s">
+  <p class="kicker">Modelo · comparación</p>
+  <h2>Tres enfoques, misma métrica, mismo test</h2>
+  <div class="grid2" style="grid-template-columns:1.15fr .85fr">
+    <img class="fig" src="img/comparacion.png">
+    <table style="font-size:17px">
+      <tr><th>Modelo</th><th>FN*</th><th>MB</th><th>ms CPU</th></tr>
+      <tr><td>CLIP zero-shot</td><td>—</td><td>605</td><td>45</td></tr>
+      <tr><td>EfficientNet-B0</td><td>5</td><td>16,3</td><td>240</td></tr>
+      <tr class="sel"><td>YOLO-cls nano ✓</td><td>4</td><td>3,2</td><td>6</td></tr>
+    </table>
+  </div>
+  <ul class="z" style="margin-top:14px">
+    <li><b>CLIP sin entrenar ≈ azar (25 %)</b>: un modelo general no sabe leer resonancias → hay que adaptarlo.</li>
+    <li><b>Elegimos YOLO-cls nano</b>: mejor accuracy balanceada, menos falsos negativos, 5× más liviano y ~40× más rápido en CPU.</li>
+  </ul>
+  <p class="z" style="color:#64748b;font-size:14px;margin-top:6px">* FN = tumor clasificado como "sin tumor", de 800 imágenes con tumor.</p>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 5 · Métricas -->
+<section class="s">
+  <p class="kicker">Modelo · métricas en prueba</p>
+  <h2>YOLO-cls nano en 1.052 imágenes nunca vistas</h2>
+  <div class="kpis">
+    <div class="card"><div class="big">98,4%</div><p>Accuracy balanceada</p></div>
+    <div class="card"><div class="big">99,5%</div><p>Sensibilidad "hay tumor"</p></div>
+    <div class="card"><div class="big">100%</div><p>Especificidad (0 falsos positivos)</p></div>
+    <div class="card"><div class="big">93%</div><p>Umbral de confianza calibrado en validación</p></div>
+  </div>
+  <div class="grid2" style="grid-template-columns:.8fr 1.2fr;margin-top:22px">
+    <img class="fig" src="img/matriz.png" style="max-height:330px;width:auto">
+    <ul>
+      <li>Error principal: <b>glioma ↔ meningioma</b> (tumores que se parecen visualmente).</li>
+      <li>Bajo el umbral queda el <b>5,3 %</b> de las imágenes: ahí el modelo acierta solo 82 % → la app <b>pide revisión humana</b>.</li>
+      <li>Sobre el umbral: 99,3 % de acierto.</li>
+    </ul>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 6 · Error más costoso -->
+<section class="s">
+  <p class="kicker">Interpretación</p>
+  <h2>El error más costoso: decir "sin tumor" cuando sí hay</h2>
+  <div class="grid2" style="grid-template-columns:.7fr 1.3fr">
+    <div class="card aviso" style="text-align:center;padding:36px">
+      <div class="big" style="color:#fbbf24;font-size:96px">4</div>
+      <p style="font-size:20px;margin-top:10px">de 800 tumores<br>clasificados como "sin tumor" (0,5 %)</p>
+    </div>
+    <ul>
+      <li>Un <b>falso negativo</b> podría dejar un estudio al final de la fila y <b>retrasar el tratamiento</b>.</li>
+      <li>Un falso positivo genera ansiedad y costos, pero <b>se corrige al revisar</b>.</li>
+      <li>2 de esos 4 errores tenían <b>confianza alta</b>: el umbral no los atrapa a todos.</li>
+      <li>Por eso la app <b>nunca "descarta"</b>, y el LLM recuerda consultar si hay síntomas aunque diga "sin tumor".</li>
+    </ul>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 7 · Grad-CAM -->
+<section class="s">
+  <p class="kicker">Explicabilidad</p>
+  <h2>Grad-CAM: ¿dónde miró la red?</h2>
+  <img class="fig z" src="img/gradcam.png" style="margin-top:22px">
+  <p class="lead z" style="margin-top:8px;font-size:15px;display:flex;justify-content:space-around"><span>Glioma</span><span>Meningioma</span><span>Sin tumor</span><span>Pituitario</span></p>
+  <ul class="z" style="margin-top:14px">
+    <li>Gradientes de la clase ganadora sobre la <b>última capa convolucional</b> (1.280 mapas de 7×7) → mapa de calor.</li>
+    <li>Misma idea que los mapas de activación de la Pauta 1, aplicada al modelo preentrenado. <b>La app lo muestra en cada imagen.</b></li>
+  </ul>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 8 · App -->
+<section class="s">
+  <p class="kicker">Demo · neurolens.cvdi.cl</p>
+  <h2>La app</h2>
+  <div class="grid2" style="grid-template-columns:1.25fr .75fr;align-items:start">
+    <img class="fig" src="img/app_analizar.webp" style="max-height:520px;object-fit:cover;object-position:top">
+    <ul style="margin-top:-6px">
+      <li><b>Analizar:</b> clase, confianza, barras de las 4 clases, Grad-CAM.</li>
+      <li><b>Confianza de esta imagen ≠ desempeño del modelo</b> en prueba (98,4 %), separados y explicados.</li>
+      <li><b>Recomendación IA</b> en streaming con Claude Haiku.</li>
+      <li><b>Juego Humano vs IA</b>: marcador y explicación de por qué falló cada uno.</li>
+      <li>Aprende · El modelo · Historial.</li>
+    </ul>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 9 · Arquitectura e IA responsable -->
+<section class="s">
+  <p class="kicker">Código e IA generativa</p>
+  <h2>Arquitectura y prompt responsable</h2>
+  <div class="grid2" style="align-items:start">
+    <div class="card">
+      <p style="font-size:18px;line-height:1.7">
+        <span class="tag">Next.js 16</span><span class="tag">Tailwind</span><span class="tag">Framer Motion</span><br>
+        ↓ <code>/api/*</code> (red interna Docker)<br>
+        <span class="tag">FastAPI</span><span class="tag">YOLO-cls</span><span class="tag">Grad-CAM</span><br>
+        ↓ solo texto<br>
+        <span class="tag">Claude Haiku 5.5</span>
+      </p>
+      <p style="margin-top:14px;color:#94a3b8;font-size:16px">docker compose aislado · Cloudflare Tunnel · landing con clave rotativa diaria (solo por SSH) · cookie HttpOnly firmada · límite de intentos.</p>
+    </div>
+    <ul style="margin-top:-6px">
+      <li>Al LLM se envía <b>solo texto</b>: clase, confianza, probabilidades y umbral. Nunca la imagen.</li>
+      <li><i>System prompt</i>: <b>"no es un diagnóstico"</b>, tema acotado, sin fármacos ni pronósticos.</li>
+      <li>Si la confianza está <b>bajo el umbral</b> o la 2ª clase está cerca → pide <b>revisión humana</b>.</li>
+      <li>La clave API vive en el <b>servidor</b>, nunca en GitHub.</li>
+    </ul>
+  </div>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+<!-- 10 · Cierre -->
+<section class="s">
+  <p class="kicker">Cierre</p>
+  <h2>Aprendizajes, riesgos y mejoras</h2>
+  <div class="grid2" style="grid-template-columns:1fr 1fr 1fr;gap:22px;align-items:stretch">
+    <div class="card"><p class="kicker" style="margin-bottom:8px">Aprendizajes</p><ul><li style="font-size:18px">Transfer learning: de 25 % a 98 % con pocos datos del dominio.</li><li style="font-size:18px">El modelo más grande no siempre es el mejor.</li></ul></div>
+    <div class="card"><p class="kicker" style="margin-bottom:8px">Riesgos</p><ul><li style="font-size:18px">Métrica optimista (sin ID de paciente).</li><li style="font-size:18px">Sesgo de fuente en "sin tumor".</li><li style="font-size:18px">Siempre elige una de 4 clases.</li></ul></div>
+    <div class="card"><p class="kicker" style="margin-bottom:8px">Mejoras</p><ul><li style="font-size:18px">Validar con datos de otro hospital.</li><li style="font-size:18px">Dividir por paciente.</li><li style="font-size:18px">Clase "fuera de distribución".</li></ul></div>
+  </div>
+  <p class="lead z" style="margin-top:34px;text-align:center;font-size:26px">Gracias · <span class="cian">neurolens.cvdi.cl</span></p>
+  <div class="pie"><span>NeuroLens · UDD</span><img src="img/udd-logo.png"></div>
+</section>
+
+</body>
+</html>
