@@ -1,0 +1,76 @@
+{
+  "modelo": "YOLO-cls nano",
+  "accuracy": 0.9838403041825095,
+  "balanced_accuracy": 0.9840569877883312,
+  "n_test": 1052,
+  "n_train": 4909,
+  "n_val": 1052,
+  "recall_por_clase": {
+    "glioma": 0.9664179104477612,
+    "meningioma": 0.9925373134328358,
+    "notumor": 1.0,
+    "pituitary": 0.9772727272727273
+  },
+  "precision_por_clase": {
+    "glioma": 0.9847908745247148,
+    "meningioma": 0.9672727272727273,
+    "notumor": 0.984375,
+    "pituitary": 1.0
+  },
+  "matriz_confusion": [
+    [
+      259,
+      5,
+      4,
+      0
+    ],
+    [
+      2,
+      266,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      252,
+      0
+    ],
+    [
+      2,
+      4,
+      0,
+      258
+    ]
+  ],
+  "sensibilidad_tumor": 0.995,
+  "especificidad_tumor": 1.0,
+  "falsos_negativos": 4,
+  "umbral": 0.93,
+  "comparacion": [
+    {
+      "modelo": "CLIP zero-shot",
+      "balanced_accuracy": 0.24638711205875385,
+      "accuracy": 0.2509505703422053,
+      "falsos_negativos": 0,
+      "tamano_mb": 605.0,
+      "ms_por_imagen": 45.3
+    },
+    {
+      "modelo": "EfficientNet-B0 (timm)",
+      "balanced_accuracy": 0.9756022377291034,
+      "accuracy": 0.9752851711026616,
+      "falsos_negativos": 5,
+      "tamano_mb": 16.3,
+      "ms_por_imagen": 240.0
+    },
+    {
+      "modelo": "YOLO-cls nano",
+      "balanced_accuracy": 0.9840569877883312,
+      "accuracy": 0.9838403041825095,
+      "falsos_negativos": 4,
+      "tamano_mb": 3.2,
+      "ms_por_imagen": 5.6
+    }
+  ]
+}

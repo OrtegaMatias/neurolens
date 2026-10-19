@@ -1,0 +1,12 @@
+# --- App (app.py, FastAPI) · torch en versión CPU para el servidor ---
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.*
+torchvision
+ultralytics==8.4.*
+fastapi
+uvicorn[standard]  # incluye python-dotenv (--env-file)
+python-multipart
+pillow
+numpy
+matplotlib
+anthropic

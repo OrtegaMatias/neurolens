@@ -1,0 +1,28 @@
+{
+  "clases": [
+    {
+      "id": "glioma",
+      "nombre": "Glioma",
+      "color": "#f472b6",
+      "descripcion": "Tumor que nace de las células glía, que dan soporte a las neuronas. Suele infiltrarse en el tejido cerebral y tiene bordes irregulares."
+    },
+    {
+      "id": "meningioma",
+      "nombre": "Meningioma",
+      "color": "#fbbf24",
+      "descripcion": "Tumor de las meninges, las membranas que envuelven el cerebro. En general crece lento, es bien delimitado y con frecuencia es benigno."
+    },
+    {
+      "id": "notumor",
+      "nombre": "Sin tumor",
+      "color": "#34d399",
+      "descripcion": "El modelo no reconoce ninguno de los tres tipos de tumor entrenados en este corte. No descarta otras condiciones."
+    },
+    {
+      "id": "pituitary",
+      "nombre": "Tumor pituitario",
+      "color": "#818cf8",
+      "descripcion": "Tumor de la hipófisis, glándula en la base del cerebro que regula hormonas. La mayoría son adenomas benignos."
+    }
+  ]
+}

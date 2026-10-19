@@ -1,0 +1,6 @@
+# Extra para notebooks/entrenamiento.ipynb (además de requirements.txt)
+timm
+transformers
+scikit-learn
+pandas
+kagglehub

@@ -1,0 +1,98 @@
+[
+ {
+  "archivo": "desafio/00.jpg",
+  "clase": "glioma"
+ },
+ {
+  "archivo": "desafio/01.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/02.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/03.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/04.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/05.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/06.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/07.jpg",
+  "clase": "glioma"
+ },
+ {
+  "archivo": "desafio/08.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/09.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/10.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/11.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/12.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/13.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/14.jpg",
+  "clase": "glioma"
+ },
+ {
+  "archivo": "desafio/15.jpg",
+  "clase": "glioma"
+ },
+ {
+  "archivo": "desafio/16.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/17.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/18.jpg",
+  "clase": "glioma"
+ },
+ {
+  "archivo": "desafio/19.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/20.jpg",
+  "clase": "meningioma"
+ },
+ {
+  "archivo": "desafio/21.jpg",
+  "clase": "notumor"
+ },
+ {
+  "archivo": "desafio/22.jpg",
+  "clase": "pituitary"
+ },
+ {
+  "archivo": "desafio/23.jpg",
+  "clase": "glioma"
+ }
+]
