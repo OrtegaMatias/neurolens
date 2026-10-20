@@ -38,7 +38,7 @@ export function useInfoServidor() {
       } catch (err) {
         if (controller.signal.aborted) return;
         // Sin conexión o 502/503/504 = típicamente el contenedor aún está arrancando.
-        // Un 401 (sesión vencida) NO se reintenta: lo resuelve ControlAcceso volviendo a la pantalla de acceso.
+        // /api/info es público, así que nunca debería responder 401; otros errores no se reintentan.
         const recuperable = err instanceof ApiError && (err.status === null || [502, 503, 504].includes(err.status));
         if (recuperable && intentos < MAX_INTENTOS) {
           setIntento(intentos);

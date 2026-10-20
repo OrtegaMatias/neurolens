@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { motion, useAnimate } from "framer-motion";
-import { ArrowRight, Flame, KeyRound, LoaderCircle, Sparkles, Swords, TriangleAlert } from "lucide-react";
-import { ApiError, entrar } from "@/lib/api";
+import { motion } from "framer-motion";
+import { ArrowRight, Flame, KeyRound, Sparkles, Swords, UserRound } from "lucide-react";
+import { FormularioClave } from "./FormularioClave";
 import { AvisoEducativo } from "./AvisoEducativo";
 import { Logo } from "./Logo";
 import { LogoUDD } from "./LogoUDD";
@@ -34,42 +33,13 @@ const aparecer = {
 };
 
 interface Props {
-  /** aviso a mostrar al llegar (p. ej. sesión expirada) */
-  mensaje?: string;
-  onEntrar: () => void;
+  /** entrar sin clave: toda la app excepto la IA generativa */
+  onInvitado: () => void;
+  /** la clave fue aceptada (cookie de sesión creada): app con IA generativa */
+  onConClave: () => void;
 }
 
-export function Landing({ mensaje, onEntrar }: Props) {
-  const [clave, setClave] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Referencia al formulario para animar una "sacudida" cuando la clave falla
-  const [formulario, animar] = useAnimate<HTMLFormElement>();
-
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!clave.trim() || enviando) return;
-    setEnviando(true);
-    setError(null);
-    try {
-      await entrar(clave.trim());
-      onEntrar();
-    } catch (err) {
-      const status = err instanceof ApiError ? err.status : undefined;
-      setError(
-        status === 401
-          ? "Clave incorrecta. Revisa que sea la clave vigente de hoy."
-          : status === 429
-            ? "Demasiados intentos. Espera unos minutos antes de volver a intentar."
-            : err instanceof Error
-              ? err.message
-              : "No se pudo verificar la clave.",
-      );
-      void animar(formulario.current, { x: [0, -8, 8, -5, 5, 0] }, { duration: 0.4 });
-      setEnviando(false);
-    }
-  };
-
+export function Landing({ onInvitado, onConClave }: Props) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <AvisoEducativo />
@@ -148,66 +118,40 @@ export function Landing({ mensaje, onEntrar }: Props) {
           />
 
           <div className="relative">
-            <h2 id="titulo-acceso" className="flex items-center gap-2 font-display text-xl font-semibold text-white">
-              <KeyRound className="h-5 w-5 text-cyan-300" aria-hidden />
-              Acceso
+            <h2 id="titulo-acceso" className="font-display text-xl font-semibold text-white">
+              ¿Cómo quieres entrar?
             </h2>
-            <p className="mt-1 text-sm text-slate-400">Ingresa la clave de acceso para usar la aplicación.</p>
 
-            {mensaje && !error && (
-              <p role="status" className="mt-4 flex gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden />
-                {mensaje}
-              </p>
-            )}
-
-            <form ref={formulario} onSubmit={enviar} className="mt-5 space-y-3">
-              <label htmlFor="clave" className="sr-only">
-                Clave de acceso
-              </label>
-              <input
-                id="clave"
-                name="clave"
-                type="text"
-                // Único campo de la pantalla: enfocarlo de inmediato ahorra un clic
-                autoFocus
-                autoComplete="off"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                maxLength={32}
-                placeholder="XXXX-XXXX-XXXX"
-                value={clave}
-                onChange={(e) => setClave(e.target.value.toUpperCase())}
-                aria-invalid={Boolean(error)}
-                aria-describedby={error ? "error-clave" : "nota-clave"}
-                className={`w-full rounded-xl border bg-ink-900/70 px-4 py-3.5 text-center font-mono text-lg uppercase tracking-[0.25em] text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 ${
-                  error ? "border-rose-400/50 focus:ring-rose-400/40" : "border-white/10 focus:border-cyan-400/50 focus:ring-cyan-400/30"
-                }`}
-              />
+            {/* Opción 1: invitado */}
+            <div className="mt-5">
               <button
-                type="submit"
-                disabled={!clave.trim() || enviando}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-400 px-5 py-3.5 font-semibold text-slate-950 shadow-[0_0_24px_-6px_rgba(34,211,238,0.7)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                onClick={onInvitado}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-400 px-5 py-3.5 font-semibold text-slate-950 shadow-[0_0_24px_-6px_rgba(34,211,238,0.7)] transition hover:brightness-110"
               >
-                {enviando ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                )}
-                {enviando ? "Verificando…" : "Entrar"}
+                <UserRound className="h-4 w-4" aria-hidden />
+                Entrar como invitado
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </button>
-            </form>
+              <p className="mt-2 text-center text-sm text-slate-400">Clasifica, mira el Grad-CAM y juega contra la IA.</p>
+            </div>
 
-            {error && (
-              <p id="error-clave" role="alert" className="mt-3 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                {error}
+            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-slate-500" aria-hidden>
+              <span className="h-px flex-1 bg-white/10" />o<span className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {/* Opción 2: con clave */}
+            <div>
+              <h3 className="flex items-center gap-2 font-medium text-slate-100">
+                <KeyRound className="h-4 w-4 text-cyan-300" aria-hidden />
+                Entrar con clave · IA generativa
+              </h3>
+              <p className="mb-3 mt-1 text-sm leading-relaxed text-slate-400">
+                Desbloquea las recomendaciones y explicaciones de Claude Haiku. La clave la entrega el equipo del
+                proyecto (rota diariamente).
               </p>
-            )}
-
-            <p id="nota-clave" className="mt-5 text-xs leading-relaxed text-slate-500">
-              La clave de acceso la entrega el equipo del proyecto (rota diariamente).
-            </p>
+              <FormularioClave onExito={onConClave} textoBoton="Entrar con clave" />
+            </div>
           </div>
         </motion.section>
       </main>

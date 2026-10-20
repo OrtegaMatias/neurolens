@@ -5,7 +5,9 @@ import { Bot, Flame, Lightbulb, Sparkles, TriangleAlert, User } from "lucide-rea
 import { explicarDesafio, type Clase, type ClaseId, type Metricas, type Prediccion } from "@/lib/api";
 import { porcentaje } from "@/lib/formato";
 import { diferencia, RASGOS } from "@/lib/pistas";
+import { useAccesoIA } from "@/lib/accesoIA";
 import { useStreamIA } from "@/lib/useStreamIA";
+import { BloqueoIA } from "./BloqueoIA";
 import { ControlesIA, SalidaIA } from "./SalidaIA";
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
 // Las pistas son instantáneas (estáticas + datos del modelo); la explicación con Claude es opcional.
 export function ExplicacionDesafio({ claseReal, eleccion, prediccion, clases, umbral, metricas }: Props) {
   const nombre = (id: string) => clases.find((c) => c.id === id)?.nombre ?? id;
+  const { ia } = useAccesoIA();
   const { estado, texto, error, generar, detener } = useStreamIA((alRecibir, signal) =>
     explicarDesafio(
       {
@@ -167,27 +170,39 @@ export function ExplicacionDesafio({ claseReal, eleccion, prediccion, clases, um
         </Tarjeta>
       </div>
 
-      {/* Explicación opcional con Claude */}
+      {/* Explicación opcional con Claude (en modo invitado: bloqueo con clave; la ronda actual se mantiene) */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {estado === "inicial" ? (
-            <button
-              type="button"
-              onClick={generar}
-              className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20"
-            >
-              <Sparkles className="h-4 w-4" aria-hidden />
-              Explícame con IA (Claude)
-            </button>
-          ) : (
+        {ia ? (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {estado === "inicial" ? (
+                <button
+                  type="button"
+                  onClick={generar}
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20"
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  Explícame con IA (Claude)
+                </button>
+              ) : (
+                <p className="flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <Sparkles className="h-4 w-4 text-cyan-300" aria-hidden />
+                  Explicación con IA
+                </p>
+              )}
+              <ControlesIA estado={estado} onGenerar={generar} onDetener={detener} />
+            </div>
+            <SalidaIA estado={estado} texto={texto} error={error} onReintentar={generar} />
+          </>
+        ) : (
+          <>
             <p className="flex items-center gap-2 text-sm font-medium text-slate-200">
               <Sparkles className="h-4 w-4 text-cyan-300" aria-hidden />
-              Explicación con IA
+              Explícame con IA (Claude)
             </p>
-          )}
-          <ControlesIA estado={estado} onGenerar={generar} onDetener={detener} />
-        </div>
-        <SalidaIA estado={estado} texto={texto} error={error} onReintentar={generar} />
+            <BloqueoIA />
+          </>
+        )}
       </div>
     </div>
   );

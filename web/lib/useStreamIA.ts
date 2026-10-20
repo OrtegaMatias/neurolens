@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAccesoIA } from "./accesoIA";
 import { ApiError } from "./api";
 
 export type EstadoStreamIA = "inicial" | "generando" | "listo" | "error";
@@ -13,6 +14,7 @@ export type FuenteStreamIA = (alRecibir: (trozo: string) => void, signal: AbortS
  * permite detener o regenerar y traduce los errores a mensajes amables.
  */
 export function useStreamIA(fuente: FuenteStreamIA) {
+  const { expirarIA } = useAccesoIA();
   const [estado, setEstado] = useState<EstadoStreamIA>("inicial");
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,13 @@ export function useStreamIA(fuente: FuenteStreamIA) {
     } catch (err) {
       if (c.signal.aborted) {
         setEstado((e) => (e === "generando" ? "listo" : e));
+        return;
+      }
+      // 401 = la clave expiró (rota a diario): volvemos al modo invitado y la tarjeta muestra el bloqueo
+      if (err instanceof ApiError && err.status === 401) {
+        setTexto("");
+        setEstado("inicial");
+        expirarIA();
         return;
       }
       if (err instanceof ApiError && err.status === 503) {

@@ -1,26 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ApiError, EVENTO_SESION_EXPIRADA, salir, verificarSesion } from "@/lib/api";
+import { ContextoAccesoIA, type AccesoIA } from "@/lib/accesoIA";
+import { ApiError, salir, verificarSesion } from "@/lib/api";
 import { Landing } from "./Landing";
 import { Logo } from "./Logo";
 import { NeuroLensApp } from "./NeuroLensApp";
 
-type Acceso =
-  | { tipo: "verificando"; despertando: boolean }
-  | { tipo: "fuera"; mensaje?: string }
-  | { tipo: "dentro" };
+type Pantalla = "verificando" | "landing" | "app";
 
+// Recuerda que la persona ya entró (como invitada o con clave) para saltarse la landing al recargar
+const CLAVE_RECORDAR = "neurolens:entro";
 const MAX_INTENTOS = 12;
 const ESPERA_ENTRE_INTENTOS_MS = 5_000;
 
-// Decide qué se muestra: pantalla de acceso (landing) o la app, según la cookie de sesión.
-export function ControlAcceso() {
-  const [acceso, setAcceso] = useState<Acceso>({ tipo: "verificando", despertando: false });
+function leerEntrada(): boolean {
+  try {
+    return window.localStorage.getItem(CLAVE_RECORDAR) === "1";
+  } catch {
+    return false; // sin acceso a localStorage: se trata como primera visita
+  }
+}
 
-  // 1) Al cargar, preguntamos al backend si la sesión sigue vigente (con reintentos si está despertando)
+function recordarEntrada(si: boolean) {
+  try {
+    if (si) window.localStorage.setItem(CLAVE_RECORDAR, "1");
+    else window.localStorage.removeItem(CLAVE_RECORDAR);
+  } catch {
+    // almacenamiento bloqueado: simplemente no se recuerda
+  }
+}
+
+// Decide qué se muestra (landing o app) y si la IA generativa está habilitada.
+// Niveles: invitado = todo menos IA generativa; con clave = además recomendaciones y explicaciones.
+export function ControlAcceso() {
+  const [estadoPantalla, setPantalla] = useState<Pantalla>("verificando");
+  const [ia, setIa] = useState(false);
+  const [avisoIA, setAvisoIA] = useState<string | null>(null);
+  // Leído con useSyncExternalStore: en el servidor (prerender) es false, en el navegador el valor guardado
+  const yaEntro = useSyncExternalStore(
+    () => () => {},
+    leerEntrada,
+    () => false,
+  );
+  // Si ya había entrado antes, va directo a la app sin esperar a /api/sesion
+  const pantalla: Pantalla = estadoPantalla === "verificando" && yaEntro ? "app" : estadoPantalla;
+
+  // Al cargar preguntamos a /api/sesion si la cookie de la clave sigue vigente
+  // (reintentando si el servidor está despertando).
   useEffect(() => {
+    // Tras verificar: con clave → app; sin clave → app si ya había entrado, si no la landing
+    const sinClave = (p: Pantalla): Pantalla => (p === "verificando" ? (leerEntrada() ? "app" : "landing") : p);
+
     const controller = new AbortController();
     let intentos = 0;
     let reintento: number | undefined;
@@ -28,19 +60,20 @@ export function ControlAcceso() {
     const intentar = async () => {
       intentos += 1;
       try {
-        const valida = await verificarSesion(controller.signal);
-        setAcceso(valida ? { tipo: "dentro" } : { tipo: "fuera" });
+        const sesion = await verificarSesion(controller.signal);
+        if (sesion.ia) {
+          setIa(true);
+          setPantalla("app");
+        } else {
+          setPantalla(sinClave);
+        }
       } catch (err) {
         if (controller.signal.aborted) return;
+        // Mientras el servidor despierta mostramos la landing (entrar como invitado no lo necesita)
+        setPantalla(sinClave);
         const recuperable = err instanceof ApiError && (err.status === null || [502, 503, 504].includes(err.status));
         if (recuperable && intentos < MAX_INTENTOS) {
-          setAcceso({ tipo: "verificando", despertando: true });
           reintento = window.setTimeout(intentar, ESPERA_ENTRE_INTENTOS_MS);
-        } else {
-          setAcceso({
-            tipo: "fuera",
-            mensaje: "No pudimos verificar tu sesión: el servidor no responde. Puedes intentar ingresar igualmente.",
-          });
         }
       }
     };
@@ -52,61 +85,67 @@ export function ControlAcceso() {
     };
   }, []);
 
-  // 2) Cualquier 401 posterior (sesión vencida o clave rotada) nos devuelve a la pantalla de acceso
-  useEffect(() => {
-    const alExpirar = () =>
-      setAcceso((a) => (a.tipo === "dentro" ? { tipo: "fuera", mensaje: "Tu sesión expiró. Ingresa la clave vigente." } : a));
-    window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
-    return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
+  const activarIA = useCallback(() => {
+    setIa(true);
+    setAvisoIA(null);
   }, []);
+
+  const expirarIA = useCallback(() => {
+    setIa(false);
+    setAvisoIA("Tu clave expiró (rota a diario). Ingresa la vigente.");
+  }, []);
+
+  const entrar = useCallback(
+    (conClave: boolean) => {
+      recordarEntrada(true);
+      if (conClave) activarIA();
+      setPantalla("app");
+    },
+    [activarIA],
+  );
 
   const cerrarSesion = useCallback(async () => {
     try {
       await salir();
     } catch {
-      // aunque falle la llamada, mostramos la pantalla de acceso
+      // aunque falle la llamada, volvemos a la landing
     }
-    setAcceso({ tipo: "fuera" });
+    recordarEntrada(false);
+    setIa(false);
+    setAvisoIA(null);
+    setPantalla("landing");
   }, []);
 
-  if (acceso.tipo === "verificando") {
+  const contexto = useMemo<AccesoIA>(() => ({ ia, avisoIA, activarIA, expirarIA }), [ia, avisoIA, activarIA, expirarIA]);
+
+  if (pantalla === "verificando") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center" role="status">
         <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.6, repeat: Infinity }}>
           <Logo className="h-14 w-14" />
         </motion.div>
-        <p className="text-sm text-slate-400">
-          {acceso.despertando
-            ? "Despertando el servidor… puede tardar unos 30 segundos."
-            : "Verificando acceso…"}
-        </p>
+        <p className="text-sm text-slate-400">Cargando…</p>
       </div>
     );
   }
 
   return (
-    <AnimatePresence mode="wait">
-      {acceso.tipo === "dentro" ? (
+    <ContextoAccesoIA.Provider value={contexto}>
+      <AnimatePresence mode="wait">
         <motion.div
-          key="app"
+          key={pantalla}
           className="flex flex-1 flex-col"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <NeuroLensApp onSalir={cerrarSesion} />
+          {pantalla === "app" ? (
+            <NeuroLensApp onSalir={cerrarSesion} />
+          ) : (
+            <Landing onInvitado={() => entrar(false)} onConClave={() => entrar(true)} />
+          )}
         </motion.div>
-      ) : (
-        <motion.div
-          key="landing"
-          className="flex flex-1 flex-col"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <Landing mensaje={acceso.mensaje} onEntrar={() => setAcceso({ tipo: "dentro" })} />
-        </motion.div>
-      )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </ContextoAccesoIA.Provider>
   );
 }

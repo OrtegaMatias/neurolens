@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| 🌐 App | https://neurolens.cvdi.cl (requiere clave de acceso, ver sección 4) |
+| 🌐 App | https://neurolens.cvdi.cl (abierta como invitado; la IA generativa requiere clave, ver sección 4) |
 | 💻 Repositorio | https://github.com/OrtegaMatias/neurolens |
 | 👥 Integrantes | Matías Ortega · Gaspar Lammel |
 
@@ -82,13 +82,13 @@ Frontend y backend corren en un servidor propio con `docker compose` (proyecto, 
 
 | Endpoint | Qué hace |
 |---|---|
-| `POST /api/acceso` | valida la clave de acceso y entrega una cookie de sesión (12 h) |
+| `POST /api/acceso` | valida la clave y entrega una cookie de sesión con IA generativa (12 h) |
 | `GET /api/info` | clases, umbral y métricas de prueba |
 | `POST /api/predict` | imagen → clase, confianza, probabilidades, aviso de baja confianza y Grad-CAM |
 | `POST /api/recomendar` | resultado → recomendación educativa de Claude (streaming) |
 | `POST /api/explicar-desafio` | ronda del juego → explicación de Claude de por qué falló cada uno |
 
-**Acceso con clave rotativa.** Para que nadie consuma la API del LLM sin permiso, la app abre con una *landing* que pide una clave. La clave vive en un archivo del servidor (`acceso/clave`, permisos 600), solo se obtiene por SSH y un cron la rota cada día (`scripts/rotar-clave.sh`). La sesión es una cookie HttpOnly firmada con HMAC usando la clave vigente: al rotar, todas las sesiones se cierran. Hay límite de 5 intentos fallidos cada 10 minutos por IP.
+**Dos niveles de acceso.** Cualquiera puede **entrar como invitado** y usar la clasificación, el Grad-CAM, las métricas y el juego Humano vs IA. La **IA generativa** (Claude), que es lo que tiene costo, requiere una **clave rotativa**: vive en un archivo del servidor (`acceso/clave`, permisos 600), solo se obtiene por SSH y un cron la cambia cada día (`scripts/rotar-clave.sh`). Al ingresarla, el backend entrega una cookie HttpOnly firmada con HMAC usando la clave vigente; al rotar, esas sesiones vencen. Los endpoints del LLM responden 401 sin esa sesión y hay límite de 5 intentos fallidos cada 10 minutos por IP.
 
 **La app incluye:** carga de imagen (arrastrar, archivo o cámara del celular) e imágenes de ejemplo · clase, confianza y barras de probabilidad · Grad-CAM · desempeño del modelo en prueba claramente separado de la confianza por imagen · recomendación con IA · aviso educativo permanente y alerta de revisión humana bajo el umbral · mini juego Humano vs IA con marcador y explicaciones · pestaña de aprendizaje · historial local.
 

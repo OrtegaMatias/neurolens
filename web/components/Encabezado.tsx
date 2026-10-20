@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import { AvisoEducativo } from "./AvisoEducativo";
 import { EstadoConexion } from "./EstadoConexion";
+import { InsigniaIA } from "./InsigniaIA";
 import { Logo } from "./Logo";
 import { LogoUDD } from "./LogoUDD";
 import type { EstadoServidor } from "@/lib/useInfoServidor";
@@ -25,10 +26,11 @@ export function Encabezado({ estado, onSalir }: { estado: EstadoServidor; onSali
         <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           <LogoUDD className="hidden h-8 w-auto opacity-90 md:block" />
           <EstadoConexion estado={estado} />
+          <InsigniaIA />
           <button
             type="button"
             onClick={onSalir}
-            title="Cerrar sesión"
+            title="Salir y volver a la pantalla de inicio"
             className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300 transition hover:border-rose-400/40 hover:text-rose-200"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />

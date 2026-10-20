@@ -80,11 +80,13 @@ def superponer(img: Image.Image, cam: np.ndarray) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 3. Acceso con clave rotativa
+# 3. Acceso en dos niveles
+#    - Invitado (sin clave): clasificar, Grad-CAM, métricas y juego.
+#    - Con clave: además, la IA generativa (Claude), que es lo que tiene costo.
 #    La clave vive en un archivo del servidor (solo legible por SSH) y la cambia
 #    un cron diario (scripts/rotar-clave.sh). Quien la ingresa recibe una cookie
-#    de sesión firmada con HMAC usando la clave vigente: al rotar, todas las
-#    sesiones anteriores dejan de ser válidas. Sin archivo de clave, nadie entra.
+#    firmada con HMAC usando la clave vigente: al rotar, las sesiones con IA
+#    dejan de ser válidas. Sin archivo de clave, nadie usa la IA generativa.
 # ---------------------------------------------------------------------------
 ARCHIVO_CLAVE = Path(os.getenv("ARCHIVO_CLAVE", Path(__file__).parent / "acceso" / "clave"))
 COOKIE = "neurolens_sesion"
@@ -109,13 +111,18 @@ def firmar(clave: str, vence: str) -> str:
     return hmac.new(clave.encode(), f"sesion|{vence}".encode(), hashlib.sha256).hexdigest()
 
 
-def exigir_sesion(request: Request) -> None:
-    """Dependencia de FastAPI: corta la petición con 401 si no hay sesión válida."""
+def sesion_con_ia(request: Request) -> bool:
+    """True si la cookie es válida para la clave vigente y no ha vencido."""
     clave = clave_actual()
     vence, _, firma = request.cookies.get(COOKIE, "").partition(".")
-    if not (clave and vence.isdigit() and int(vence) > time.time()
-            and hmac.compare_digest(firma, firmar(clave, vence))):
-        raise HTTPException(401, "Sesión no válida o expirada.")
+    return bool(clave and vence.isdigit() and int(vence) > time.time()
+                and hmac.compare_digest(firma, firmar(clave, vence)))
+
+
+def exigir_ia(request: Request) -> None:
+    """Dependencia de FastAPI para los endpoints del LLM: 401 sin sesión con IA."""
+    if not sesion_con_ia(request):
+        raise HTTPException(401, "La IA generativa requiere la clave de acceso vigente.")
 
 
 def ip_cliente(request: Request) -> str:
@@ -128,7 +135,7 @@ def ip_cliente(request: Request) -> str:
 # 4. API
 # ---------------------------------------------------------------------------
 app = FastAPI(title="NeuroLens API", docs_url=None, redoc_url=None, openapi_url=None)
-sesion = [Depends(exigir_sesion)]
+con_ia = [Depends(exigir_ia)]
 
 
 @app.get("/")
@@ -157,9 +164,9 @@ def acceso(datos: Acceso, request: Request, response: Response):
     return {"ok": True}
 
 
-@app.get("/api/sesion", dependencies=sesion)
-def ver_sesion():
-    return {"ok": True}
+@app.get("/api/sesion")
+def ver_sesion(request: Request):
+    return {"ia": sesion_con_ia(request)}
 
 
 @app.post("/api/salir")
@@ -168,12 +175,12 @@ def salir(response: Response):
     return {"ok": True}
 
 
-@app.get("/api/info", dependencies=sesion)
+@app.get("/api/info")
 def info():
     return {"clases": INFO["clases"], "umbral": UMBRAL, "metricas": METRICAS}
 
 
-@app.post("/api/predict", dependencies=sesion)
+@app.post("/api/predict")
 async def predict(file: UploadFile = File(...)):
     try:
         img = Image.open(io.BytesIO(await file.read())).convert("RGB")
@@ -254,7 +261,7 @@ def responder_con_claude(prompt: str, instrucciones: str) -> StreamingResponse:
     return StreamingResponse(flujo(), media_type="text/plain; charset=utf-8")
 
 
-@app.post("/api/recomendar", dependencies=sesion)
+@app.post("/api/recomendar", dependencies=con_ia)
 def recomendar(r: Resultado):
     return responder_con_claude(armar_prompt(r), INSTRUCCIONES)
 
@@ -301,7 +308,7 @@ def armar_prompt_juego(r: Ronda) -> str:
     )
 
 
-@app.post("/api/explicar-desafio", dependencies=sesion)
+@app.post("/api/explicar-desafio", dependencies=con_ia)
 def explicar_desafio(r: Ronda):
     if not {r.clase_real, r.eleccion, r.prediccion} <= set(NOMBRE):
         raise HTTPException(400, "Clase desconocida.")

@@ -5,12 +5,6 @@
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 
-/** Evento global que se emite cuando el backend responde 401 (sesión vencida o clave rotada). */
-export const EVENTO_SESION_EXPIRADA = "neurolens:sesion-expirada";
-
-// Rutas de acceso: un 401 en ellas es una respuesta esperada, no una sesión vencida
-const RUTAS_DE_ACCESO = ["/api/acceso", "/api/sesion", "/api/salir"];
-
 export type ClaseId = "glioma" | "meningioma" | "notumor" | "pituitary";
 
 export interface Clase {
@@ -74,13 +68,7 @@ async function solicitar(ruta: string, init: RequestInit = {}, timeoutMs = 60_00
 
   try {
     const res = await fetch(`${API_URL}${ruta}`, { ...init, signal: controller.signal });
-    if (!res.ok) {
-      // Manejo central del 401: la app vuelve a la pantalla de acceso sin que cada componente lo resuelva
-      if (res.status === 401 && !RUTAS_DE_ACCESO.includes(ruta)) {
-        window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA));
-      }
-      throw await errorDesdeRespuesta(res);
-    }
+    if (!res.ok) throw await errorDesdeRespuesta(res);
     return res;
   } catch (err) {
     if (err instanceof ApiError) throw err;
@@ -109,17 +97,14 @@ async function errorDesdeRespuesta(res: Response): Promise<ApiError> {
   return new ApiError(detalle, res.status);
 }
 
-// ---------- Acceso con clave ----------
+// ---------- Acceso con clave (solo para la IA generativa) ----------
+// /api/info y /api/predict son públicos; /api/recomendar y /api/explicar-desafio requieren la clave.
 
-/** true si la cookie de sesión es válida; false si el backend responde 401. Otros errores se propagan. */
-export async function verificarSesion(signal?: AbortSignal): Promise<boolean> {
-  try {
-    await solicitar("/api/sesion", { signal }, 20_000);
-    return true;
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) return false;
-    throw err;
-  }
+/** Pregunta si hay una sesión con clave vigente: { ia: true } habilita la IA generativa. */
+export async function verificarSesion(signal?: AbortSignal): Promise<{ ia: boolean }> {
+  const res = await solicitar("/api/sesion", { signal }, 20_000);
+  const data: unknown = await res.json();
+  return { ia: Boolean(data && typeof data === "object" && "ia" in data && data.ia === true) };
 }
 
 /** Envía la clave; si es correcta el backend deja una cookie HttpOnly con la sesión. */
